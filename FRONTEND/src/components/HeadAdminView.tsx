@@ -36,7 +36,7 @@ const HeadAdminView: React.FC<HeadAdminViewProps> = ({ user, onLogout, reservati
               <Shield size={20} />
             </div>
             <div>
-              <span className="font-black text-xl italic uppercase tracking-tighter block">ESBD Admin</span>
+              <span className="font-black text-xl italic uppercase tracking-tighter block">reserVUT Admin</span>
               <span className="text-[10px] font-bold text-gray-400">{user.email}</span>
             </div>
           </div>

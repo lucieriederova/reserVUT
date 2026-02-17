@@ -22,7 +22,7 @@ app.use('/api/reservations', reservationRoutes);
 
 // Základní cesta pro ověření, že backend žije
 app.get('/', (req, res) => {
-  res.send('🚀 ESBD Reservation API is running on port 5001...');
+  res.send('🚀 reserVUT API is running on port 5001...');
 });
 
 // Start serveru

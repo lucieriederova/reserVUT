@@ -43,7 +43,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
           FP
         </div>
         <div className="px-6 py-3 text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] bg-white">
-          ESBD Reservation
+          reserVUT
         </div>
       </div>
 
