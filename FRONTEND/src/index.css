@@ -1,0 +1,15 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    @apply bg-[#f0f2f5] text-slate-900 antialiased;
+    font-family: 'Inter', sans-serif; /* Pokud nemáš Inter, použije se systémové */
+  }
+}
+
+/* Jemný efekt pro karty */
+.glass-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
