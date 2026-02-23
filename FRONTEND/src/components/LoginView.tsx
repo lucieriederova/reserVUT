@@ -8,17 +8,19 @@ interface LoginViewProps {
 }
 
 const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, onForgotPassword }) => {
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [selectedRole, setSelectedRole] = useState<AppRole>('Student');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [signupFirstName, setSignupFirstName] = useState('');
+  const [signupLastName, setSignupLastName] = useState('');
+  const [signupEmail, setSignupEmail] = useState('');
+  const [signupPassword, setSignupPassword] = useState('');
+  const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
-  const validateCredentials = () => {
+  const validateLoginCredentials = () => {
     if (!email.includes('@vut.cz') && !email.includes('@vutbr.cz')) {
       setError('Zadejte prosím platný VUT e-mail (např. vut-id@vut.cz).');
       return false;
@@ -31,7 +33,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, onForgotPass
   };
 
   const handleLoginAction = async () => {
-    if (!validateCredentials()) return;
+    if (!validateLoginCredentials()) return;
     setError(null);
     setInfo(null);
     setLoading(true);
@@ -45,12 +47,15 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, onForgotPass
   };
 
   const handleRegisterAction = async () => {
-    if (!validateCredentials()) return;
-    if (!firstName.trim() || !lastName.trim()) {
+    if (!signupFirstName.trim() || !signupLastName.trim()) {
       setError('Vyplňte jméno i příjmení.');
       return;
     }
-    if (password.length < 6) {
+    if (!signupEmail.includes('@vut.cz') && !signupEmail.includes('@vutbr.cz')) {
+      setError('Zadejte prosím platný VUT e-mail (např. vut-id@vut.cz).');
+      return;
+    }
+    if (signupPassword.length < 6) {
       setError('Heslo musí mít alespoň 6 znaků.');
       return;
     }
@@ -59,9 +64,13 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, onForgotPass
     setInfo(null);
     setLoading(true);
     try {
-      await onRegister(email, password, firstName.trim(), lastName.trim());
+      await onRegister(signupEmail, signupPassword, signupFirstName.trim(), signupLastName.trim());
       setInfo('Účet vytvořen. Pokud je vyžadováno ověření e-mailu, potvrďte ho a pak se přihlaste.');
-      setMode('login');
+      setSignupFirstName('');
+      setSignupLastName('');
+      setSignupEmail('');
+      setSignupPassword('');
+      setIsSignupModalOpen(false);
     } catch (e: any) {
       setError(e?.response?.data?.error || e?.message || 'Registrace selhala.');
     } finally {
@@ -108,27 +117,12 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, onForgotPass
 
       {/* Hlavní Login Card */}
       <div className="bg-white w-full max-w-[560px] rounded-[48px] shadow-2xl p-12 text-center border border-gray-50">
-        <h1 className="text-4xl font-black text-gray-900 mb-4 tracking-tight">{mode === 'login' ? 'Welcome Back' : 'Create Account'}</h1>
+        <h1 className="text-4xl font-black text-gray-900 mb-4 tracking-tight">Welcome Back</h1>
         <p className="text-gray-400 text-sm font-medium mb-12">
-          {mode === 'login' ? 'Select your role and enter your credentials' : 'Use your VUT e-mail and create a password'}
+          Select your role and enter your credentials
         </p>
-        <div className="mb-6 flex gap-2 rounded-2xl bg-[#F9FAFB] p-2">
-          <button
-            onClick={() => setMode('login')}
-            className={`flex-1 rounded-xl py-2 text-xs font-black uppercase tracking-wider ${mode === 'login' ? 'bg-white text-gray-900' : 'text-gray-500'}`}
-          >
-            Sign In
-          </button>
-          <button
-            onClick={() => setMode('signup')}
-            className={`flex-1 rounded-xl py-2 text-xs font-black uppercase tracking-wider ${mode === 'signup' ? 'bg-white text-gray-900' : 'text-gray-500'}`}
-          >
-            Sign Up
-          </button>
-        </div>
 
         {/* 1. Výběr Role */}
-        {mode === 'login' && (
         <div className="text-left mb-8">
           <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-4 block">
             1. Select Your Role
@@ -155,36 +149,11 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, onForgotPass
             ))}
           </div>
         </div>
-        )}
 
         {/* 2. Pole pro E-mail */}
         <div className="text-left mb-8">
-          {mode === 'signup' && (
-            <>
-              <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 block">
-                2. First Name
-              </label>
-              <input
-                type="text"
-                placeholder="Lucie"
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="w-full bg-[#F9FAFB] border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold focus:border-[#7C3AED] focus:outline-none transition-all placeholder:opacity-30"
-              />
-              <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 mt-4 block">
-                3. Last Name
-              </label>
-              <input
-                type="text"
-                placeholder="Riederová"
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="w-full bg-[#F9FAFB] border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold focus:border-[#7C3AED] focus:outline-none transition-all placeholder:opacity-30"
-              />
-            </>
-          )}
           <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 block">
-            {mode === 'signup' ? '4. VUT E-mail Address' : '2. VUT E-mail Address'}
+            2. VUT E-mail Address
           </label>
           <input 
             type="email" 
@@ -194,7 +163,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, onForgotPass
             className="w-full bg-[#F9FAFB] border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold focus:border-[#7C3AED] focus:outline-none transition-all placeholder:opacity-30"
           />
           <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 mt-4 block">
-            {mode === 'signup' ? '5. Supabase Password' : '3. Supabase Password'}
+            3. Supabase Password
           </label>
           <input
             type="password"
@@ -205,7 +174,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, onForgotPass
           />
           
           {/* Info box pouze pro CEO/Guide (Verifikace) */}
-          {mode === 'login' && (selectedRole === 'CEO' || selectedRole === 'Guide') && (
+          {(selectedRole === 'CEO' || selectedRole === 'Guide') && (
             <div className="bg-[#EFF6FF] border border-blue-100 rounded-2xl p-4 flex gap-4 text-left mt-4">
               <div className="bg-blue-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 italic">i</div>
               <p className="text-[11px] text-blue-700 leading-relaxed font-bold">
@@ -213,28 +182,108 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, onForgotPass
               </p>
             </div>
           )}
-          {mode === 'login' && (
-            <button
-              onClick={handleForgotPassword}
-              disabled={loading}
-              className="mt-4 text-[11px] font-black uppercase tracking-wider text-[#7C3AED] hover:underline disabled:opacity-50"
-            >
-              Forgot Password
-            </button>
-          )}
+          <button
+            onClick={handleForgotPassword}
+            disabled={loading}
+            className="mt-4 text-[11px] font-black uppercase tracking-wider text-[#7C3AED] hover:underline disabled:opacity-50"
+          >
+            Forgot Password
+          </button>
         </div>
         {error && <p className="text-xs font-bold text-red-600 mb-4">{error}</p>}
         {info && <p className="text-xs font-bold text-emerald-600 mb-4">{info}</p>}
 
         {/* Hlavní Login Button */}
         <button 
-          onClick={mode === 'login' ? handleLoginAction : handleRegisterAction}
+          onClick={handleLoginAction}
           disabled={loading}
           className="w-full bg-gradient-to-r from-[#EF4444] to-[#7C3AED] hover:opacity-90 text-white py-5 rounded-3xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-purple-100 transition-transform active:scale-[0.98]"
         >
-          {loading ? 'Working...' : mode === 'login' ? 'Authenticate & Continue' : 'Create Account'}
+          {loading ? 'Working...' : 'Authenticate & Continue'}
+        </button>
+        <button
+          onClick={() => setIsSignupModalOpen(true)}
+          disabled={loading}
+          className="mt-4 text-[11px] font-black uppercase tracking-wider text-[#7C3AED] hover:underline disabled:opacity-50"
+        >
+          Create New Account
         </button>
       </div>
+
+      {isSignupModalOpen && (
+        <div className="fixed inset-0 z-[10000] bg-black/40 backdrop-blur-[2px] flex items-center justify-center p-4">
+          <div className="w-full max-w-[560px] bg-white rounded-[36px] border border-gray-100 shadow-2xl p-8">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-black text-gray-900 tracking-tight">Create Account</h2>
+              <button
+                onClick={() => setIsSignupModalOpen(false)}
+                className="text-sm font-black text-gray-500 hover:text-gray-900"
+              >
+                X
+              </button>
+            </div>
+
+            <div className="text-left space-y-4">
+              <div>
+                <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 block">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="Lucie"
+                  value={signupFirstName}
+                  onChange={(e) => setSignupFirstName(e.target.value)}
+                  className="w-full bg-[#F9FAFB] border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold focus:border-[#7C3AED] focus:outline-none transition-all placeholder:opacity-30"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 block">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  placeholder="Riederova"
+                  value={signupLastName}
+                  onChange={(e) => setSignupLastName(e.target.value)}
+                  className="w-full bg-[#F9FAFB] border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold focus:border-[#7C3AED] focus:outline-none transition-all placeholder:opacity-30"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 block">
+                  VUT E-mail Address
+                </label>
+                <input
+                  type="email"
+                  placeholder="vut-id@vut.cz"
+                  value={signupEmail}
+                  onChange={(e) => setSignupEmail(e.target.value)}
+                  className="w-full bg-[#F9FAFB] border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold focus:border-[#7C3AED] focus:outline-none transition-all placeholder:opacity-30"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 block">
+                  Supabase Password
+                </label>
+                <input
+                  type="password"
+                  placeholder="at least 6 characters"
+                  value={signupPassword}
+                  onChange={(e) => setSignupPassword(e.target.value)}
+                  className="w-full bg-[#F9FAFB] border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold focus:border-[#7C3AED] focus:outline-none transition-all placeholder:opacity-30"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={handleRegisterAction}
+              disabled={loading}
+              className="mt-8 w-full bg-gradient-to-r from-[#EF4444] to-[#7C3AED] hover:opacity-90 text-white py-4 rounded-3xl font-black uppercase text-sm tracking-widest shadow-xl shadow-purple-100 transition-transform active:scale-[0.98]"
+            >
+              {loading ? 'Working...' : 'Create Account'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <footer className="mt-12 text-center opacity-40">
