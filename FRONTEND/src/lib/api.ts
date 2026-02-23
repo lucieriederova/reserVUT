@@ -61,6 +61,37 @@ export const login = async (email: string, password: string, role: AppRole) => {
   return data;
 };
 
+export const registerAccount = async (email: string, password: string, firstName: string, lastName: string) => {
+  const { error } = await supabase.auth.signUp({
+    email,
+    password,
+    options: {
+      data: {
+        first_name: firstName,
+        last_name: lastName,
+        full_name: `${firstName} ${lastName}`.trim()
+      }
+    }
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  // Keep backend user table in sync. New accounts default to Student.
+  await api.post<AppUser>('/auth/login', { email, role: 'Student' });
+};
+
+export const sendPasswordReset = async (email: string) => {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/login`
+  });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+};
+
 export const logout = async () => {
   await supabase.auth.signOut();
 };

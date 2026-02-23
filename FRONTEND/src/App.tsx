@@ -6,7 +6,7 @@ import StudentView from './components/StudentView';
 import CEOView from './components/CEOView';
 import GuideView from './components/GuideView';
 import HeadAdminView from './components/HeadAdminView';
-import { fetchReservations, login, logout, type AppRole, type AppUser, type ReservationRecord } from './lib/api';
+import { fetchReservations, login, logout, registerAccount, sendPasswordReset, type AppRole, type AppUser, type ReservationRecord } from './lib/api';
 
 const roleToPath = (role: AppUser['role']) => {
   switch (role) {
@@ -54,11 +54,24 @@ const App: React.FC = () => {
     await refreshReservations();
   };
 
+  const handleRegister = async (email: string, password: string, firstName: string, lastName: string) => {
+    await registerAccount(email, password, firstName, lastName);
+  };
+
+  const handleForgotPassword = async (email: string) => {
+    await sendPasswordReset(email);
+  };
+
   const handleLogout = async () => {
-    await logout();
-    setUser(null);
-    setReservations([]);
-    localStorage.removeItem('inprofo_user');
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Supabase sign-out failed, continuing local logout.', error);
+    } finally {
+      setUser(null);
+      setReservations([]);
+      localStorage.removeItem('inprofo_user');
+    }
   };
 
   const homePath = useMemo(() => (user ? roleToPath(user.role) : '/login'), [user]);
@@ -85,7 +98,7 @@ const App: React.FC = () => {
         <Routes>
           {!user ? (
             <>
-              <Route path="/login" element={<LoginView onLogin={handleLogin} />} />
+              <Route path="/login" element={<LoginView onLogin={handleLogin} onRegister={handleRegister} onForgotPassword={handleForgotPassword} />} />
               <Route path="*" element={<Navigate to="/login" replace />} />
             </>
           ) : (

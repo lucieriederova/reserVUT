@@ -3,31 +3,85 @@ import type { AppRole } from '../lib/api';
 
 interface LoginViewProps {
   onLogin: (role: AppRole, email: string, password: string) => Promise<void>;
+  onRegister: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  onForgotPassword: (email: string) => Promise<void>;
 }
 
-const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
+const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, onForgotPassword }) => {
+  const [mode, setMode] = useState<'login' | 'signup'>('login');
   const [selectedRole, setSelectedRole] = useState<AppRole>('Student');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
 
-  const handleLoginAction = async () => {
-    // Validace VUT emailu pro všechny role
+  const validateCredentials = () => {
     if (!email.includes('@vut.cz') && !email.includes('@vutbr.cz')) {
       setError('Zadejte prosím platný VUT e-mail (např. vut-id@vut.cz).');
-      return;
+      return false;
     }
     if (!password) {
       setError('Zadejte heslo k Supabase účtu.');
-      return;
+      return false;
     }
+    return true;
+  };
+
+  const handleLoginAction = async () => {
+    if (!validateCredentials()) return;
     setError(null);
+    setInfo(null);
     setLoading(true);
     try {
       await onLogin(selectedRole, email, password);
     } catch (e: any) {
       setError(e?.response?.data?.error || e?.message || 'Přihlášení selhalo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRegisterAction = async () => {
+    if (!validateCredentials()) return;
+    if (!firstName.trim() || !lastName.trim()) {
+      setError('Vyplňte jméno i příjmení.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Heslo musí mít alespoň 6 znaků.');
+      return;
+    }
+
+    setError(null);
+    setInfo(null);
+    setLoading(true);
+    try {
+      await onRegister(email, password, firstName.trim(), lastName.trim());
+      setInfo('Účet vytvořen. Pokud je vyžadováno ověření e-mailu, potvrďte ho a pak se přihlaste.');
+      setMode('login');
+    } catch (e: any) {
+      setError(e?.response?.data?.error || e?.message || 'Registrace selhala.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email.includes('@vut.cz') && !email.includes('@vutbr.cz')) {
+      setError('Nejdřív zadejte VUT e-mail pro reset hesla.');
+      return;
+    }
+    setError(null);
+    setInfo(null);
+    setLoading(true);
+    try {
+      await onForgotPassword(email);
+      setInfo('Odkaz na reset hesla byl odeslán na váš e-mail.');
+    } catch (e: any) {
+      setError(e?.response?.data?.error || e?.message || 'Reset hesla selhal.');
     } finally {
       setLoading(false);
     }
@@ -54,12 +108,27 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
 
       {/* Hlavní Login Card */}
       <div className="bg-white w-full max-w-[560px] rounded-[48px] shadow-2xl p-12 text-center border border-gray-50">
-        <h1 className="text-4xl font-black text-gray-900 mb-4 tracking-tight">Welcome Back</h1>
+        <h1 className="text-4xl font-black text-gray-900 mb-4 tracking-tight">{mode === 'login' ? 'Welcome Back' : 'Create Account'}</h1>
         <p className="text-gray-400 text-sm font-medium mb-12">
-          Select your role and enter your credentials
+          {mode === 'login' ? 'Select your role and enter your credentials' : 'Use your VUT e-mail and create a password'}
         </p>
+        <div className="mb-6 flex gap-2 rounded-2xl bg-[#F9FAFB] p-2">
+          <button
+            onClick={() => setMode('login')}
+            className={`flex-1 rounded-xl py-2 text-xs font-black uppercase tracking-wider ${mode === 'login' ? 'bg-white text-gray-900' : 'text-gray-500'}`}
+          >
+            Sign In
+          </button>
+          <button
+            onClick={() => setMode('signup')}
+            className={`flex-1 rounded-xl py-2 text-xs font-black uppercase tracking-wider ${mode === 'signup' ? 'bg-white text-gray-900' : 'text-gray-500'}`}
+          >
+            Sign Up
+          </button>
+        </div>
 
         {/* 1. Výběr Role */}
+        {mode === 'login' && (
         <div className="text-left mb-8">
           <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-4 block">
             1. Select Your Role
@@ -86,11 +155,36 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             ))}
           </div>
         </div>
+        )}
 
         {/* 2. Pole pro E-mail */}
         <div className="text-left mb-8">
+          {mode === 'signup' && (
+            <>
+              <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 block">
+                2. First Name
+              </label>
+              <input
+                type="text"
+                placeholder="Lucie"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="w-full bg-[#F9FAFB] border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold focus:border-[#7C3AED] focus:outline-none transition-all placeholder:opacity-30"
+              />
+              <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 mt-4 block">
+                3. Last Name
+              </label>
+              <input
+                type="text"
+                placeholder="Riederová"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="w-full bg-[#F9FAFB] border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold focus:border-[#7C3AED] focus:outline-none transition-all placeholder:opacity-30"
+              />
+            </>
+          )}
           <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 block">
-            2. VUT E-mail Address
+            {mode === 'signup' ? '4. VUT E-mail Address' : '2. VUT E-mail Address'}
           </label>
           <input 
             type="email" 
@@ -100,7 +194,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             className="w-full bg-[#F9FAFB] border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold focus:border-[#7C3AED] focus:outline-none transition-all placeholder:opacity-30"
           />
           <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 mt-4 block">
-            3. Supabase Password
+            {mode === 'signup' ? '5. Supabase Password' : '3. Supabase Password'}
           </label>
           <input
             type="password"
@@ -111,7 +205,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
           />
           
           {/* Info box pouze pro CEO/Guide (Verifikace) */}
-          {(selectedRole === 'CEO' || selectedRole === 'Guide') && (
+          {mode === 'login' && (selectedRole === 'CEO' || selectedRole === 'Guide') && (
             <div className="bg-[#EFF6FF] border border-blue-100 rounded-2xl p-4 flex gap-4 text-left mt-4">
               <div className="bg-blue-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 italic">i</div>
               <p className="text-[11px] text-blue-700 leading-relaxed font-bold">
@@ -119,17 +213,26 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
               </p>
             </div>
           )}
-          {/* Šedý info box pro studenty byl odstraněn na vaši žádost */}
+          {mode === 'login' && (
+            <button
+              onClick={handleForgotPassword}
+              disabled={loading}
+              className="mt-4 text-[11px] font-black uppercase tracking-wider text-[#7C3AED] hover:underline disabled:opacity-50"
+            >
+              Forgot Password
+            </button>
+          )}
         </div>
         {error && <p className="text-xs font-bold text-red-600 mb-4">{error}</p>}
+        {info && <p className="text-xs font-bold text-emerald-600 mb-4">{info}</p>}
 
         {/* Hlavní Login Button */}
         <button 
-          onClick={handleLoginAction}
+          onClick={mode === 'login' ? handleLoginAction : handleRegisterAction}
           disabled={loading}
           className="w-full bg-gradient-to-r from-[#EF4444] to-[#7C3AED] hover:opacity-90 text-white py-5 rounded-3xl font-black uppercase text-sm tracking-widest flex items-center justify-center gap-3 shadow-xl shadow-purple-100 transition-transform active:scale-[0.98]"
         >
-          {loading ? 'Authenticating...' : 'Authenticate & Continue'}
+          {loading ? 'Working...' : mode === 'login' ? 'Authenticate & Continue' : 'Create Account'}
         </button>
       </div>
 
