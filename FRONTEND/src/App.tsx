@@ -6,7 +6,7 @@ import StudentView from './components/StudentView';
 import CEOView from './components/CEOView';
 import GuideView from './components/GuideView';
 import HeadAdminView from './components/HeadAdminView';
-import { fetchReservations, login, type AppRole, type AppUser, type ReservationRecord } from './lib/api';
+import { fetchReservations, login, logout, type AppRole, type AppUser, type ReservationRecord } from './lib/api';
 
 const roleToPath = (role: AppUser['role']) => {
   switch (role) {
@@ -47,14 +47,15 @@ const App: React.FC = () => {
     setLoading(false);
   }, []);
 
-  const handleLogin = async (role: AppRole, email: string) => {
-    const loggedIn = await login(email, role);
+  const handleLogin = async (role: AppRole, email: string, password: string) => {
+    const loggedIn = await login(email, password, role);
     setUser(loggedIn);
     localStorage.setItem('inprofo_user', JSON.stringify(loggedIn));
     await refreshReservations();
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout();
     setUser(null);
     setReservations([]);
     localStorage.removeItem('inprofo_user');

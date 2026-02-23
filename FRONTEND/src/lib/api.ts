@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { supabase } from './supabase';
 
 export type AppRole = 'Student' | 'CEO' | 'Guide' | 'Head Admin';
 
@@ -38,9 +39,18 @@ export const rolePriority: Record<AppRole, number> = {
   'Head Admin': 4
 };
 
-export const login = async (email: string, role: AppRole) => {
+export const login = async (email: string, password: string, role: AppRole) => {
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) {
+    throw new Error(error.message);
+  }
+
   const { data } = await api.post<AppUser>('/auth/login', { email, role });
   return data;
+};
+
+export const logout = async () => {
+  await supabase.auth.signOut();
 };
 
 export const fetchReservations = async () => {

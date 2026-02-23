@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import type { AppRole } from '../lib/api';
 
 interface LoginViewProps {
-  onLogin: (role: AppRole, email: string) => Promise<void>;
+  onLogin: (role: AppRole, email: string, password: string) => Promise<void>;
 }
 
 const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
   const [selectedRole, setSelectedRole] = useState<AppRole>('Student');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,12 +18,16 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
       setError('Zadejte prosím platný VUT e-mail (např. vut-id@vut.cz).');
       return;
     }
+    if (!password) {
+      setError('Zadejte heslo k Supabase účtu.');
+      return;
+    }
     setError(null);
     setLoading(true);
     try {
-      await onLogin(selectedRole, email);
+      await onLogin(selectedRole, email, password);
     } catch (e: any) {
-      setError(e?.response?.data?.error || 'Přihlášení selhalo.');
+      setError(e?.response?.data?.error || e?.message || 'Přihlášení selhalo.');
     } finally {
       setLoading(false);
     }
@@ -92,6 +97,16 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin }) => {
             placeholder="vut-id@vut.cz"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className="w-full bg-[#F9FAFB] border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold focus:border-[#7C3AED] focus:outline-none transition-all placeholder:opacity-30"
+          />
+          <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 mt-4 block">
+            3. Supabase Password
+          </label>
+          <input
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             className="w-full bg-[#F9FAFB] border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold focus:border-[#7C3AED] focus:outline-none transition-all placeholder:opacity-30"
           />
           
