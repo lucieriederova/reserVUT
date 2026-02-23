@@ -25,8 +25,20 @@ export interface ReservationRecord {
   };
 }
 
+const normalizeApiBaseUrl = (value?: string) => {
+  const fallback = 'http://localhost:5001/api';
+  if (!value) return fallback;
+
+  // Accept accidental format like "VITE_API_URL=https://...".
+  const withoutKey = value.startsWith('VITE_API_URL=') ? value.slice('VITE_API_URL='.length) : value;
+  const trimmed = withoutKey.trim().replace(/\/+$/, '');
+  if (!trimmed) return fallback;
+
+  return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5001/api',
+  baseURL: normalizeApiBaseUrl(import.meta.env.VITE_API_URL),
   headers: {
     'Content-Type': 'application/json'
   }
