@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import ReservationModal from './ReservationModal';
 import CalendarGrid from './CalendarGrid';
+import WeekNavigator from './WeekNavigator';
 import type { UserStatusData } from './CalendarGrid';
 import type { AppUser, ReservationRecord } from '../lib/api';
 import { createReservation, rolePriority } from '../lib/api';
@@ -17,6 +18,7 @@ interface GuideViewProps {
 const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roomPolicies, onReservationCreated }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState('');
+  const [weekOffset, setWeekOffset] = useState(0);
 
   const guideRooms = useMemo(() => getRoomsForRole(roomPolicies, 'GUIDE'), [roomPolicies]);
 
@@ -120,7 +122,11 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-black/10 px-5 py-3">
                 <h2 className="text-3xl font-black uppercase leading-none">Calendar</h2>
                 <div className="flex items-center gap-4">
-                  <span className="text-xl font-medium text-black/85">{'< 23.2.-1.3. >'}</span>
+                  <WeekNavigator
+                    weekOffset={weekOffset}
+                    onPrevWeek={() => setWeekOffset((prev) => prev - 1)}
+                    onNextWeek={() => setWeekOffset((prev) => prev + 1)}
+                  />
                   <button
                     onClick={() => setIsModalOpen(true)}
                     disabled={!guideRooms.length}
@@ -136,6 +142,7 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
                     rooms={guideRooms}
                     userStatus={guideStatus}
                     selectedRoomId={selectedRoomId || guideRooms[0]}
+                    weekOffset={weekOffset}
                   />
                 ) : (
                   <p className="px-4 py-8 text-lg font-bold text-gray-700">No rooms are currently assigned to Guide role.</p>
