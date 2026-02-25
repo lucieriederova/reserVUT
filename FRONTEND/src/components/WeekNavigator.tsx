@@ -45,7 +45,9 @@ const WeekNavigator: React.FC<WeekNavigatorProps> = ({ weekOffset, onPrevWeek, o
       >
         {'<'}
       </button>
-      <span className="min-w-[170px] text-center tabular-nums">{formatWeekRange(weekOffset)}</span>
+      <span className="min-w-[190px] rounded-full border border-black/10 bg-white px-5 py-1.5 text-center tabular-nums shadow-sm">
+        {formatWeekRange(weekOffset)}
+      </span>
       <button
         type="button"
         onClick={onNextWeek}
