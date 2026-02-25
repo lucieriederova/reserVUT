@@ -58,7 +58,7 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
 
   return (
     <div className="min-h-screen bg-black text-black">
-      <div className="mx-auto max-w-[1600px] px-3 pb-6 pt-2">
+      <div className="mx-auto w-full max-w-[1440px] px-3 pb-6 pt-2 sm:px-4 lg:px-6">
         <header className="rounded-none bg-[#efeff2] px-5 py-2">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-6">
@@ -72,22 +72,16 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
                 <span className="font-medium text-black">Global Schedule</span>
               </div>
             </div>
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="min-w-0 text-right leading-tight">
-                <p className="truncate text-2xl font-medium text-black sm:text-4xl">{user.email.split('@')[0]}</p>
-                <p className="truncate text-base text-[#777] sm:text-[2rem]">{user.email}</p>
-              </div>
-              <div className="h-14 w-14 rounded-full border-4 border-[#b6b6b6] bg-white sm:h-16 sm:w-16" />
-            </div>
+            <div className="hidden h-14 w-14 rounded-full border-4 border-[#b6b6b6] bg-white xl:block" />
           </div>
         </header>
 
-        <div className="mt-2 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_290px]">
+        <div className="mt-3 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
           <div>
-            <h1 className="select-none text-[88px] font-black leading-[0.85] tracking-tight text-[#8e42be] sm:text-[140px] lg:text-[200px]">
+            <h1 className="select-none text-[clamp(4.8rem,13vw,11rem)] font-black leading-[0.85] tracking-tight text-[#8e42be]">
               GUIDE
             </h1>
-            <div className="-mt-1 grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_430px]">
+            <div className="-mt-1 grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_420px]">
               <div className="max-w-[520px] rounded-full bg-[#efeff2] px-5 py-3">
                 <label className="text-xs font-bold uppercase tracking-[0.14em] text-black/45">Select Room</label>
                 <select
@@ -103,8 +97,8 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
                 </select>
               </div>
               <div className="rounded-[2.4rem] bg-[#efeff2] p-5">
-                <h2 className="text-4xl font-black uppercase leading-none sm:text-5xl">Rules</h2>
-                <ul className="mt-3 space-y-1 text-base font-semibold sm:text-2xl">
+                <h2 className="text-4xl font-black uppercase leading-none">Rules</h2>
+                <ul className="mt-3 space-y-1 text-xl font-semibold">
                   <li>Guide role can reserve only allowed rooms.</li>
                   <li>Reservation max length is 3 hours.</li>
                   <li>Higher priority booking can pre-empt lower.</li>
@@ -126,7 +120,7 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
                   </button>
                 </div>
               </div>
-              <div className="min-h-[560px] bg-[#b8b8ba] p-3">
+              <div className="min-h-[52vh] bg-[#b8b8ba] p-3">
                 {guideRooms.length ? (
                   <CalendarGrid rooms={guideRooms} userStatus={guideStatus} selectedRoomId={selectedRoomId || guideRooms[0]} />
                 ) : (
@@ -136,9 +130,9 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
             </section>
           </div>
 
-          <aside className="flex flex-col gap-5">
+          <aside className="flex flex-col gap-5 xl:pt-24">
             <div className="rounded-[2.6rem] bg-[#efeff2] p-0 overflow-hidden">
-              <h3 className="px-4 py-3 text-center text-3xl font-medium uppercase sm:text-5xl">Upcoming</h3>
+              <h3 className="px-4 py-3 text-center text-[3rem] font-medium uppercase leading-none">Upcoming</h3>
               <div className="mt-4 space-y-2">
                 {upcomingReservations.map((reservation) => (
                   <div key={reservation.id} className="flex items-center gap-3 bg-[#e2d6e8] px-3 py-2">
@@ -150,7 +144,7 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
                 ))}
                 {!upcomingReservations.length && <p className="text-center text-sm text-black/50 sm:text-base">No upcoming bookings</p>}
               </div>
-              <h3 className="mt-8 bg-[#dddddf] px-4 py-3 text-center text-3xl font-medium uppercase sm:text-5xl">Canceled</h3>
+              <h3 className="mt-8 bg-[#dddddf] px-4 py-3 text-center text-[3rem] font-medium uppercase leading-none">Canceled</h3>
               <div className="mt-4 space-y-2">
                 {canceledReservations.map((reservation) => (
                   <div key={reservation.id} className="flex items-center gap-3 bg-[#e2d6e8] px-3 py-2">
