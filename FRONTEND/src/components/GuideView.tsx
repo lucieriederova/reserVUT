@@ -59,7 +59,7 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
 
   return (
     <div className="min-h-screen bg-black text-black">
-      <div className="mx-auto w-full max-w-[1440px] px-3 pb-6 pt-2 sm:px-4 lg:px-6">
+      <div className="mx-auto w-full max-w-[1500px] px-3 pb-10 pt-4 sm:px-5 lg:px-8">
         <header className="bg-[#efeff2] px-5 py-2">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-6">
@@ -77,20 +77,20 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
           </div>
         </header>
 
-        <div className="mt-3 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="mt-5 grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div>
-            <h1 className="select-none text-[clamp(4.8rem,13vw,11rem)] font-black leading-[0.85] tracking-tight text-[#8e42be]">
+            <h1 className="select-none text-[clamp(4.8rem,10vw,8.8rem)] font-black leading-[0.85] tracking-tight text-[#8e42be]">
               GUIDE
             </h1>
 
-            <div className="-mt-1 grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_420px]">
-              <div className="max-w-[520px] rounded-full bg-[#efeff2] px-5 py-3">
+            <div className="mt-2 grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_390px]">
+              <div className="max-w-[560px] rounded-full bg-[#efeff2] px-5 py-3">
                 <label className="text-xs font-bold uppercase tracking-[0.14em] text-black/45">Select Room</label>
                 <select
                   value={selectedRoomId}
                   onChange={(e) => setSelectedRoomId(e.target.value)}
                   disabled={!guideRooms.length}
-                  className="mt-1 w-full bg-transparent text-xl font-semibold uppercase outline-none sm:text-3xl disabled:opacity-50"
+                  className="mt-1 w-full bg-transparent text-xl font-semibold uppercase outline-none disabled:opacity-50 sm:text-2xl"
                 >
                   {guideRooms.map((room) => (
                     <option key={room} value={room}>
@@ -102,7 +102,7 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
 
               <div className="rounded-[2.4rem] bg-[#efeff2] p-5">
                 <h2 className="text-4xl font-black uppercase leading-none">Rules</h2>
-                <ul className="mt-3 space-y-1 text-xl font-semibold">
+                <ul className="mt-3 space-y-2 text-[1.05rem] font-semibold leading-snug">
                   <li>Guide role can reserve only allowed rooms.</li>
                   <li>Reservation max length is 3 hours.</li>
                   <li>Higher priority booking can pre-empt lower.</li>
@@ -112,19 +112,19 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
 
             <section className="mt-5 overflow-hidden rounded-[1.9rem] bg-[#efeff2]">
               <div className="flex flex-wrap items-center justify-between gap-4 border-b border-black/10 px-5 py-3">
-                <h2 className="text-4xl font-black uppercase leading-none sm:text-5xl">Calendar</h2>
+                <h2 className="text-4xl font-black uppercase leading-none">Calendar</h2>
                 <div className="flex items-center gap-4">
-                  <span className="text-xl font-medium sm:text-4xl">{'< 23.2.-1.3. >'}</span>
+                  <span className="text-xl font-medium sm:text-2xl xl:text-3xl">{'< 23.2.-1.3. >'}</span>
                   <button
                     onClick={() => setIsModalOpen(true)}
                     disabled={!guideRooms.length}
-                    className="rounded-full bg-[#7f3fc1] px-6 py-2 text-lg font-black uppercase text-white transition hover:brightness-105 disabled:opacity-50 sm:px-8 sm:py-3 sm:text-3xl"
+                    className="rounded-full bg-[#7f3fc1] px-6 py-2 text-lg font-black uppercase text-white transition hover:brightness-105 disabled:opacity-50 sm:px-7 sm:text-2xl xl:text-[2.6rem]"
                   >
                     + New Booking
                   </button>
                 </div>
               </div>
-              <div className="min-h-[52vh] bg-[#b8b8ba] p-3">
+              <div className="min-h-[56vh] bg-[#b8b8ba] p-3">
                 {guideRooms.length ? (
                   <CalendarGrid
                     rooms={guideRooms}
@@ -138,38 +138,38 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
             </section>
           </div>
 
-          <aside className="flex flex-col gap-5 xl:pt-24">
+          <aside className="flex flex-col gap-5 xl:pb-28 xl:pt-24">
             <div className="overflow-hidden rounded-[2.6rem] bg-[#efeff2] p-0">
-              <h3 className="px-4 py-3 text-center text-[3rem] font-medium uppercase leading-none">Upcoming</h3>
-              <div className="mt-4 space-y-2 px-2 pb-2">
+              <h3 className="px-4 py-4 text-center text-3xl font-medium uppercase leading-none sm:text-5xl xl:text-6xl">Upcoming</h3>
+              <div className="mt-3 space-y-2 px-2 pb-4">
                 {upcomingReservations.map((reservation) => (
                   <div key={reservation.id} className="flex items-center gap-3 bg-[#e2d6e8] px-3 py-2">
                     <span className="h-4 w-4 rounded-full bg-[#67cf3f]" />
-                    <span className="text-sm font-medium sm:text-lg">
+                    <span className="truncate text-sm font-medium">
                       {new Date(reservation.startTime).toLocaleDateString('cs-CZ')} - {reservation.roomName}
                     </span>
                   </div>
                 ))}
-                {!upcomingReservations.length && <p className="text-center text-sm text-black/50 sm:text-base">No upcoming bookings</p>}
+                {!upcomingReservations.length && <p className="px-2 text-center text-sm text-black/50">No upcoming bookings</p>}
               </div>
 
-              <h3 className="mt-8 bg-[#dddddf] px-4 py-3 text-center text-[3rem] font-medium uppercase leading-none">Canceled</h3>
-              <div className="mt-4 space-y-2 px-2 pb-2">
+              <h3 className="mt-2 bg-[#dddddf] px-4 py-4 text-center text-3xl font-medium uppercase leading-none sm:text-5xl xl:text-6xl">Canceled</h3>
+              <div className="mt-3 space-y-2 px-2 pb-4">
                 {canceledReservations.map((reservation) => (
                   <div key={reservation.id} className="flex items-center gap-3 bg-[#e2d6e8] px-3 py-2">
                     <span className="h-4 w-4 rounded-full bg-[#f11422]" />
-                    <span className="text-sm font-medium sm:text-lg">
+                    <span className="truncate text-sm font-medium">
                       {new Date(reservation.endTime).toLocaleDateString('cs-CZ')} - {reservation.roomName}
                     </span>
                   </div>
                 ))}
-                {!canceledReservations.length && <p className="text-center text-sm text-black/50 sm:text-base">No canceled bookings</p>}
+                {!canceledReservations.length && <p className="px-2 text-center text-sm text-black/50">No canceled bookings</p>}
               </div>
             </div>
 
-            <button
+              <button
               onClick={onLogout}
-              className="rounded-full bg-[#efeff2] py-4 text-2xl font-medium uppercase sm:py-5 sm:text-4xl"
+              className="rounded-full bg-[#efeff2] py-4 text-2xl font-medium uppercase sm:text-4xl xl:text-6xl"
             >
               Log Out
             </button>
