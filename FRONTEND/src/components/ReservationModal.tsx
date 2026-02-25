@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 interface ReservationModalProps {
   isOpen: boolean;
@@ -34,9 +34,17 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, ro
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    setRoomName(rooms[0] || '');
+  }, [rooms]);
+
   if (!isOpen) return null;
 
   const handleSubmit = async () => {
+    if (!roomName) {
+      setError('No room is available for your role.');
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -63,7 +71,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, ro
           </div>
           <div>
             <label className="text-[10px] font-black uppercase text-slate-500">Room</label>
-            <select value={roomName} onChange={(e) => setRoomName(e.target.value)} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold">
+            <select value={roomName} onChange={(e) => setRoomName(e.target.value)} disabled={!rooms.length} className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2 text-sm font-semibold disabled:opacity-60">
               {rooms.map((room) => (
                 <option key={room} value={room}>
                   {room}
@@ -90,7 +98,7 @@ const ReservationModal: React.FC<ReservationModalProps> = ({ isOpen, onClose, ro
           </button>
           <button
             onClick={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || !rooms.length}
             className="rounded-xl bg-slate-900 px-6 py-2 text-xs font-black uppercase text-white disabled:opacity-50"
           >
             {submitting ? 'Saving...' : submitLabel}

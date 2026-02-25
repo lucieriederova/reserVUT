@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import type { AppRole } from '../lib/api';
+import { AVATAR_LIBRARY } from '../lib/avatarLibrary';
 
 interface LoginViewProps {
   onLogin: (role: AppRole, email: string, password: string) => Promise<void>;
-  onRegister: (email: string, password: string, firstName: string, lastName: string) => Promise<void>;
+  onRegister: (email: string, password: string, firstName: string, lastName: string, avatarUrl: string) => Promise<void>;
   onForgotPassword: (email: string) => Promise<void>;
 }
 
@@ -15,6 +16,7 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, onForgotPass
   const [signupLastName, setSignupLastName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
+  const [selectedAvatarUrl, setSelectedAvatarUrl] = useState<string>(AVATAR_LIBRARY[0]?.src || '');
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -59,17 +61,22 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, onForgotPass
       setError('Heslo musí mít alespoň 6 znaků.');
       return;
     }
+    if (!selectedAvatarUrl) {
+      setError('Vyberte avatar z knihovny.');
+      return;
+    }
 
     setError(null);
     setInfo(null);
     setLoading(true);
     try {
-      await onRegister(signupEmail, signupPassword, signupFirstName.trim(), signupLastName.trim());
+      await onRegister(signupEmail, signupPassword, signupFirstName.trim(), signupLastName.trim(), selectedAvatarUrl);
       setInfo('Účet vytvořen. Pokud je vyžadováno ověření e-mailu, potvrďte ho a pak se přihlaste.');
       setSignupFirstName('');
       setSignupLastName('');
       setSignupEmail('');
       setSignupPassword('');
+      setSelectedAvatarUrl(AVATAR_LIBRARY[0]?.src || '');
       setIsSignupModalOpen(false);
     } catch (e: any) {
       setError(e?.response?.data?.error || e?.message || 'Registrace selhala.');
@@ -271,6 +278,24 @@ const LoginView: React.FC<LoginViewProps> = ({ onLogin, onRegister, onForgotPass
                   onChange={(e) => setSignupPassword(e.target.value)}
                   className="w-full bg-[#F9FAFB] border-2 border-gray-100 rounded-2xl px-6 py-4 text-sm font-bold focus:border-[#7C3AED] focus:outline-none transition-all placeholder:opacity-30"
                 />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-2 block">
+                  Avatar Library
+                </label>
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  {AVATAR_LIBRARY.map((avatar) => (
+                    <button
+                      key={avatar.id}
+                      type="button"
+                      onClick={() => setSelectedAvatarUrl(avatar.src)}
+                      className={`rounded-2xl border-2 p-2 transition ${selectedAvatarUrl === avatar.src ? 'border-[#ec1380]' : 'border-gray-100'}`}
+                    >
+                      <img src={avatar.src} alt={avatar.label} className="h-16 w-16 mx-auto rounded-xl object-cover" />
+                      <p className="mt-2 text-[10px] font-black uppercase text-gray-500">{avatar.label}</p>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

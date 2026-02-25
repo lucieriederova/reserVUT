@@ -57,6 +57,8 @@ export const upsertMemoryUser = (email: string, role: PrismaRole) => {
   return created;
 };
 
+export const getMemoryUserById = (id: string) => users.find((user) => user.id === id) || null;
+
 export const listMemoryReservations = () => {
   return reservations
     .slice()

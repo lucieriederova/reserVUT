@@ -1,23 +1,33 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import CalendarGrid from './CalendarGrid';
 import type { UserStatusData } from './CalendarGrid';
 import ReservationModal from './ReservationModal';
 import ReservationsList from './ReservationsList';
 import type { AppUser, ReservationRecord } from '../lib/api';
 import { createReservation, rolePriority } from '../lib/api';
-
-const STUDENT_ROOMS = ["Meeting Room", "The Aquarium"];
+import { getRoomsForRole, type RoomPolicy } from '../lib/roomAccess';
 
 interface StudentViewProps {
   user: AppUser;
   reservations: ReservationRecord[];
+  roomPolicies: RoomPolicy[];
   onReservationCreated: () => Promise<void>;
   onLogout: () => void;
 }
 
-const StudentView: React.FC<StudentViewProps> = ({ user, reservations, onReservationCreated, onLogout }) => {
-  const [selectedRoomId, setSelectedRoomId] = useState<string>(STUDENT_ROOMS[0]);
+const StudentView: React.FC<StudentViewProps> = ({ user, reservations, roomPolicies, onReservationCreated, onLogout }) => {
+  const studentRooms = useMemo(() => getRoomsForRole(roomPolicies, 'STUDENT'), [roomPolicies]);
+  const [selectedRoomId, setSelectedRoomId] = useState<string>('');
   const [isModalOpen, setModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (studentRooms.length && !studentRooms.includes(selectedRoomId)) {
+      setSelectedRoomId(studentRooms[0]);
+    }
+    if (!studentRooms.length) {
+      setSelectedRoomId('');
+    }
+  }, [selectedRoomId, studentRooms]);
 
   const studentStatus: UserStatusData = {
     role: "Student",
@@ -25,8 +35,8 @@ const StudentView: React.FC<StudentViewProps> = ({ user, reservations, onReserva
     isVerified: true
   };
   const visibleReservations = useMemo(
-    () => reservations.filter((reservation) => STUDENT_ROOMS.includes(reservation.roomName)),
-    [reservations]
+    () => reservations.filter((reservation) => studentRooms.includes(reservation.roomName)),
+    [reservations, studentRooms]
   );
 
   return (
@@ -38,7 +48,7 @@ const StudentView: React.FC<StudentViewProps> = ({ user, reservations, onReserva
             <p className="text-slate-500 text-xs mt-2 uppercase font-bold tracking-widest italic">Max 3h per booking • Max 5 days ahead</p>
             <p className="text-slate-400 text-[10px] font-bold mt-2">{user.email}</p>
             <div className="flex gap-2 mt-6">
-              {STUDENT_ROOMS.map(room => (
+              {studentRooms.map(room => (
                 <button key={room} onClick={() => setSelectedRoomId(room)} className={`px-6 py-2 rounded-xl text-xs font-black uppercase transition-all ${selectedRoomId === room ? 'bg-[#ec1380] text-white shadow-lg shadow-[#ec1380]/20' : 'bg-white text-slate-400 border border-slate-200'}`}>{room}</button>
               ))}
             </div>
@@ -50,12 +60,16 @@ const StudentView: React.FC<StudentViewProps> = ({ user, reservations, onReserva
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Weekly Quota</p>
                 <p className="text-xl font-black text-[#ec1380]">{visibleReservations.length}</p>
              </div>
-             <button onClick={() => setModalOpen(true)} className="bg-[#ec1380] text-white px-8 py-4 rounded-2xl font-black uppercase text-sm shadow-xl shadow-[#ec1380]/20 hover:scale-105 transition-transform">New Booking</button>
+             <button onClick={() => setModalOpen(true)} disabled={!studentRooms.length} className="bg-[#ec1380] disabled:opacity-40 text-white px-8 py-4 rounded-2xl font-black uppercase text-sm shadow-xl shadow-[#ec1380]/20 hover:scale-105 transition-transform">New Booking</button>
           </div>
         </header>
 
         <div className="bg-white border border-slate-100 rounded-[3rem] p-8 shadow-xl shadow-slate-200/50">
-          <CalendarGrid rooms={STUDENT_ROOMS} selectedRoomId={selectedRoomId} userStatus={studentStatus} />
+          {studentRooms.length ? (
+            <CalendarGrid rooms={studentRooms} selectedRoomId={selectedRoomId} userStatus={studentStatus} />
+          ) : (
+            <p className="text-sm font-bold text-slate-500">No rooms are currently assigned to Student role.</p>
+          )}
         </div>
         <div className="mt-8">
           <h2 className="text-sm font-black uppercase tracking-widest text-slate-500 mb-3">Live Reservations</h2>
@@ -65,7 +79,7 @@ const StudentView: React.FC<StudentViewProps> = ({ user, reservations, onReserva
       <ReservationModal
         isOpen={isModalOpen}
         onClose={() => setModalOpen(false)}
-        rooms={STUDENT_ROOMS}
+        rooms={studentRooms}
         defaultTitle="Student Workshop"
         submitLabel="Confirm Booking"
         onSubmit={async ({ roomName, type, startTime, endTime }) => {

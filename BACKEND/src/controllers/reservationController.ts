@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { PrismaClient } from '@prisma/client';
-import { createMemoryReservation, listMemoryReservations } from '../services/memoryStore.js';
+import { createMemoryReservation, getMemoryUserById, listMemoryReservations } from '../services/memoryStore.js';
+import { isRoomAllowedForRole } from '../services/roomPolicyStore.js';
 
 const prisma = new PrismaClient();
 
@@ -22,6 +23,25 @@ export const createReservation = async (req: Request, res: Response) => {
 
     if (Number.isNaN(resolvedPriorityLevel)) {
       return res.status(400).json({ error: 'Neplatná hodnota priority.' });
+    }
+
+    let resolvedUserRole: 'STUDENT' | 'CEO' | 'GUIDE' | 'HEAD_ADMIN' | null = null;
+    try {
+      const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } });
+      if (!user) {
+        return res.status(404).json({ error: 'Uživatel nebyl nalezen.' });
+      }
+      resolvedUserRole = user.role;
+    } catch {
+      const memoryUser = getMemoryUserById(userId);
+      if (!memoryUser) {
+        return res.status(404).json({ error: 'Uživatel nebyl nalezen.' });
+      }
+      resolvedUserRole = memoryUser.role;
+    }
+
+    if (!resolvedUserRole || !isRoomAllowedForRole(resolvedRoomName, resolvedUserRole)) {
+      return res.status(403).json({ error: 'Role tohoto uživatele nemá oprávnění rezervovat tuto místnost.' });
     }
 
     // --- 1. VALIDACE: CONSTRAINT ENGINE (Zadání INPROFO) ---

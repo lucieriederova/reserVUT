@@ -1,21 +1,27 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import CalendarGrid from './CalendarGrid';
 import type { UserStatusData } from './CalendarGrid';
 import ReservationModal from './ReservationModal';
 import ReservationsList from './ReservationsList';
 import type { AppUser, ReservationRecord } from '../lib/api';
 import { createReservation, rolePriority } from '../lib/api';
+import { getRoomsForRole, type RoomPolicy } from '../lib/roomAccess';
 
 interface CEOViewProps {
   user: AppUser;
   onLogout: () => void;
   reservations: ReservationRecord[];
+  roomPolicies: RoomPolicy[];
   onReservationCreated: () => Promise<void>;
 }
 
-const CEOView: React.FC<CEOViewProps> = ({ user, onLogout, reservations, onReservationCreated }) => {
+const CEOView: React.FC<CEOViewProps> = ({ user, onLogout, reservations, roomPolicies, onReservationCreated }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const ceoRooms = ['Meeting Room', 'Session Room', 'The Stage', 'The Aquarium', 'Panda Room', 'P159'];
+  const ceoRooms = useMemo(() => getRoomsForRole(roomPolicies, 'CEO'), [roomPolicies]);
+  const visibleReservations = useMemo(
+    () => reservations.filter((reservation) => ceoRooms.includes(reservation.roomName)),
+    [reservations, ceoRooms]
+  );
   const ceoStatus: UserStatusData = {
     role: 'CEO',
     priority: 2,
@@ -57,16 +63,21 @@ const CEOView: React.FC<CEOViewProps> = ({ user, onLogout, reservations, onReser
           <span className="text-xs font-black text-gray-800 uppercase tracking-widest italic tracking-[0.1em]">23 Oct — 29 Oct 2023</span>
           <button 
             onClick={() => setIsModalOpen(true)}
+            disabled={!ceoRooms.length}
             className="bg-purple-600 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-purple-100 hover:bg-purple-700 transition-all active:scale-95"
           >
             + New Booking
           </button>
         </div>
-        <CalendarGrid rooms={ceoRooms} userStatus={ceoStatus} selectedRoomId="Meeting Room" />
+        {ceoRooms.length ? (
+          <CalendarGrid rooms={ceoRooms} userStatus={ceoStatus} selectedRoomId={ceoRooms[0]} />
+        ) : (
+          <p className="px-10 py-8 text-sm font-bold text-gray-500">No rooms are currently assigned to CEO role.</p>
+        )}
       </div>
       <div className="mt-8">
         <h2 className="text-sm font-black uppercase tracking-widest text-gray-500 mb-3">Live Reservations</h2>
-        <ReservationsList reservations={reservations} />
+        <ReservationsList reservations={visibleReservations} />
       </div>
 
       <ReservationModal

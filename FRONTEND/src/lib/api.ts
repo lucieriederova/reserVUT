@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { supabase } from './supabase';
+import type { RoomPolicy } from './roomAccess';
 
 export type AppRole = 'Student' | 'CEO' | 'Guide' | 'Head Admin';
 
@@ -61,7 +62,7 @@ export const login = async (email: string, password: string, role: AppRole) => {
   return data;
 };
 
-export const registerAccount = async (email: string, password: string, firstName: string, lastName: string) => {
+export const registerAccount = async (email: string, password: string, firstName: string, lastName: string, avatarUrl: string) => {
   const { error } = await supabase.auth.signUp({
     email,
     password,
@@ -69,7 +70,8 @@ export const registerAccount = async (email: string, password: string, firstName
       data: {
         first_name: firstName,
         last_name: lastName,
-        full_name: `${firstName} ${lastName}`.trim()
+        full_name: `${firstName} ${lastName}`.trim(),
+        avatar_url: avatarUrl
       }
     }
   });
@@ -112,5 +114,15 @@ export interface CreateReservationInput {
 
 export const createReservation = async (payload: CreateReservationInput) => {
   const { data } = await api.post<ReservationRecord>('/reservations', payload);
+  return data;
+};
+
+export const fetchRoomPolicies = async () => {
+  const { data } = await api.get<RoomPolicy[]>('/room-policies');
+  return data;
+};
+
+export const updateRoomPolicies = async (policies: RoomPolicy[]) => {
+  const { data } = await api.put<RoomPolicy[]>('/room-policies', { policies });
   return data;
 };

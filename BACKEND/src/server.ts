@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 // Důležité: Přidána přípona .js, aby ESM loader soubor našel
 import reservationRoutes from './routes/reservationRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import roomPolicyRoutes from './routes/roomPolicyRoutes.js';
 
 dotenv.config();
 
@@ -19,6 +20,7 @@ app.use(express.json());
 app.use('/api/auth', authRoutes);
 // Propojení tvých rout pro rezervace (Constraint & Priority Engine)
 app.use('/api/reservations', reservationRoutes);
+app.use('/api/room-policies', roomPolicyRoutes);
 
 // Základní cesta pro ověření, že backend žije
 app.get('/', (req, res) => {

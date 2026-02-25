@@ -6,7 +6,8 @@ import StudentView from './components/StudentView';
 import CEOView from './components/CEOView';
 import GuideView from './components/GuideView';
 import HeadAdminView from './components/HeadAdminView';
-import { fetchReservations, login, logout, registerAccount, sendPasswordReset, type AppRole, type AppUser, type ReservationRecord } from './lib/api';
+import { fetchReservations, fetchRoomPolicies, login, logout, registerAccount, sendPasswordReset, updateRoomPolicies, type AppRole, type AppUser, type ReservationRecord } from './lib/api';
+import { DEFAULT_ROOM_POLICIES, ROOM_POLICIES_STORAGE_KEY, sanitizeRoomPolicies, type RoomPolicy } from './lib/roomAccess';
 
 const roleToPath = (role: AppUser['role']) => {
   switch (role) {
@@ -26,6 +27,7 @@ const roleToPath = (role: AppUser['role']) => {
 const App: React.FC = () => {
   const [user, setUser] = useState<AppUser | null>(null);
   const [reservations, setReservations] = useState<ReservationRecord[]>([]);
+  const [roomPolicies, setRoomPolicies] = useState<RoomPolicy[]>(DEFAULT_ROOM_POLICIES);
   const [loading, setLoading] = useState(true);
 
   const refreshReservations = async () => {
@@ -44,8 +46,36 @@ const App: React.FC = () => {
         localStorage.removeItem('inprofo_user');
       }
     }
+    const rawPolicies = localStorage.getItem(ROOM_POLICIES_STORAGE_KEY);
+    if (rawPolicies) {
+      try {
+        const parsedPolicies = JSON.parse(rawPolicies) as unknown;
+        setRoomPolicies(sanitizeRoomPolicies(parsedPolicies));
+      } catch {
+        localStorage.removeItem(ROOM_POLICIES_STORAGE_KEY);
+      }
+    }
+    void (async () => {
+      try {
+        const policiesFromApi = await fetchRoomPolicies();
+        setRoomPolicies(sanitizeRoomPolicies(policiesFromApi));
+      } catch {
+        // Keep local defaults/localStorage when backend room policies API is unavailable.
+      }
+    })();
     setLoading(false);
   }, []);
+
+  useEffect(() => {
+    localStorage.setItem(ROOM_POLICIES_STORAGE_KEY, JSON.stringify(roomPolicies));
+  }, [roomPolicies]);
+
+  const handleRoomPoliciesChange = (policies: RoomPolicy[]) => {
+    setRoomPolicies(policies);
+    void updateRoomPolicies(policies).catch(() => {
+      // Preserve local behavior if backend sync fails.
+    });
+  };
 
   const handleLogin = async (role: AppRole, email: string, password: string) => {
     const loggedIn = await login(email, password, role);
@@ -54,8 +84,8 @@ const App: React.FC = () => {
     await refreshReservations();
   };
 
-  const handleRegister = async (email: string, password: string, firstName: string, lastName: string) => {
-    await registerAccount(email, password, firstName, lastName);
+  const handleRegister = async (email: string, password: string, firstName: string, lastName: string, avatarUrl: string) => {
+    await registerAccount(email, password, firstName, lastName, avatarUrl);
   };
 
   const handleForgotPassword = async (email: string) => {
@@ -106,19 +136,19 @@ const App: React.FC = () => {
               <Route path="/" element={<Navigate to={homePath} replace />} />
               <Route
                 path="/student"
-                element={<StudentView user={user} reservations={reservations} onReservationCreated={refreshReservations} onLogout={handleLogout} />}
+                element={<StudentView user={user} reservations={reservations} roomPolicies={roomPolicies} onReservationCreated={refreshReservations} onLogout={handleLogout} />}
               />
               <Route
                 path="/ceo"
-                element={<CEOView user={user} onLogout={handleLogout} reservations={reservations} onReservationCreated={refreshReservations} />}
+                element={<CEOView user={user} onLogout={handleLogout} reservations={reservations} roomPolicies={roomPolicies} onReservationCreated={refreshReservations} />}
               />
               <Route
                 path="/guide"
-                element={<GuideView user={user} onLogout={handleLogout} reservations={reservations} onReservationCreated={refreshReservations} />}
+                element={<GuideView user={user} onLogout={handleLogout} reservations={reservations} roomPolicies={roomPolicies} onReservationCreated={refreshReservations} />}
               />
               <Route
                 path="/admin"
-                element={<HeadAdminView user={user} onLogout={handleLogout} reservations={reservations} />}
+                element={<HeadAdminView user={user} onLogout={handleLogout} reservations={reservations} roomPolicies={roomPolicies} onRoomPoliciesChange={handleRoomPoliciesChange} />}
               />
               <Route path="*" element={<Navigate to={homePath} replace />} />
             </>

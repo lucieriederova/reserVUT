@@ -1,23 +1,29 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import CalendarGrid from './CalendarGrid';
 import type { UserStatusData } from './CalendarGrid';
 import ReservationModal from './ReservationModal';
 import ReservationsList from './ReservationsList';
 import type { AppUser, ReservationRecord } from '../lib/api';
 import { createReservation, rolePriority } from '../lib/api';
+import { getRoomsForRole, type RoomPolicy } from '../lib/roomAccess';
 
 // 1. Definice Interface pro Props (toto vyřeší tu chybu)
 interface GuideViewProps {
   user: AppUser;
   onLogout: () => void;
   reservations: ReservationRecord[];
+  roomPolicies: RoomPolicy[];
   onReservationCreated: () => Promise<void>;
 }
 
 // 2. Použití Interface v definici komponenty
-const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, onReservationCreated }) => {
+const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roomPolicies, onReservationCreated }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const guideRooms = ['Session Room', 'Meeting Room', 'The Stage'];
+  const guideRooms = useMemo(() => getRoomsForRole(roomPolicies, 'GUIDE'), [roomPolicies]);
+  const visibleReservations = useMemo(
+    () => reservations.filter((reservation) => guideRooms.includes(reservation.roomName)),
+    [reservations, guideRooms]
+  );
   const guideStatus: UserStatusData = {
     role: 'Guide',
     priority: 3,
@@ -81,17 +87,22 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, onR
           </span>
           <button 
             onClick={() => setIsModalOpen(true)}
+            disabled={!guideRooms.length}
             className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-blue-100 transition-all active:scale-95"
           >
             + New Session
           </button>
         </div>
         
-        <CalendarGrid rooms={guideRooms} userStatus={guideStatus} selectedRoomId="Session Room" />
+        {guideRooms.length ? (
+          <CalendarGrid rooms={guideRooms} userStatus={guideStatus} selectedRoomId={guideRooms[0]} />
+        ) : (
+          <p className="px-10 py-8 text-sm font-bold text-gray-500">No rooms are currently assigned to Guide role.</p>
+        )}
       </div>
       <div className="mt-8">
         <h2 className="text-sm font-black uppercase tracking-widest text-gray-500 mb-3">Live Reservations</h2>
-        <ReservationsList reservations={reservations} />
+        <ReservationsList reservations={visibleReservations} />
       </div>
 
       <ReservationModal
