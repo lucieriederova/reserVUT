@@ -83,7 +83,7 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
 
         <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_290px]">
           <div>
-            <div className="relative mb-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_430px]">
+            <div className="relative mb-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
               <h1 className="pointer-events-none absolute -top-5 left-0 select-none text-[clamp(5.8rem,11vw,9.5rem)] font-black leading-[0.86] tracking-tight text-[#8e42be]/14">
                 GUIDE
               </h1>
@@ -107,9 +107,9 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
               </div>
 
               <div className="relative z-10 pt-2">
-                <div className="h-full min-h-[170px] rounded-3xl border border-black/5 bg-[#f5f5f7] p-5">
-                  <h2 className="text-3xl font-black uppercase leading-none">Rules</h2>
-                  <ul className="mt-3 space-y-2 text-lg font-semibold leading-snug text-black/90">
+                <div className="h-full min-h-[136px] rounded-3xl border border-black/5 bg-[#f5f5f7] p-4">
+                  <h2 className="text-2xl font-black uppercase leading-none">Rules</h2>
+                  <ul className="mt-2 space-y-1 text-base font-semibold leading-snug text-black/90">
                     <li>Guide role can reserve only allowed rooms.</li>
                     <li>Reservation max length is 3 hours.</li>
                     <li>Higher priority booking can pre-empt lower.</li>
@@ -143,6 +143,7 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
                     userStatus={guideStatus}
                     selectedRoomId={selectedRoomId || guideRooms[0]}
                     weekOffset={weekOffset}
+                    reservations={roomReservations}
                   />
                 ) : (
                   <p className="px-4 py-8 text-lg font-bold text-gray-700">No rooms are currently assigned to Guide role.</p>
