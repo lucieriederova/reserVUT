@@ -6,8 +6,11 @@ import StudentView from './components/StudentView';
 import CEOView from './components/CEOView';
 import GuideView from './components/GuideView';
 import HeadAdminView from './components/HeadAdminView';
+import AvatarPickerModal from './components/AvatarPickerModal';
 import { fetchReservations, fetchRoomPolicies, login, logout, registerAccount, sendPasswordReset, updateRoomPolicies, type AppRole, type AppUser, type ReservationRecord } from './lib/api';
 import { DEFAULT_ROOM_POLICIES, ROOM_POLICIES_STORAGE_KEY, sanitizeRoomPolicies, type RoomPolicy } from './lib/roomAccess';
+import { AVATAR_LIBRARY } from './lib/avatarLibrary';
+import { supabase } from './lib/supabase';
 
 const roleToPath = (role: AppUser['role']) => {
   switch (role) {
@@ -28,6 +31,9 @@ const App: React.FC = () => {
   const [user, setUser] = useState<AppUser | null>(null);
   const [reservations, setReservations] = useState<ReservationRecord[]>([]);
   const [roomPolicies, setRoomPolicies] = useState<RoomPolicy[]>(DEFAULT_ROOM_POLICIES);
+  const [avatarUrl, setAvatarUrl] = useState<string>(AVATAR_LIBRARY[0]?.src || '');
+  const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
+  const [avatarSaving, setAvatarSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const refreshReservations = async () => {
@@ -46,6 +52,10 @@ const App: React.FC = () => {
         localStorage.removeItem('inprofo_user');
       }
     }
+    const rawAvatar = localStorage.getItem('inprofo_avatar_url');
+    if (rawAvatar) {
+      setAvatarUrl(rawAvatar);
+    }
     const rawPolicies = localStorage.getItem(ROOM_POLICIES_STORAGE_KEY);
     if (rawPolicies) {
       try {
@@ -63,12 +73,30 @@ const App: React.FC = () => {
         // Keep local defaults/localStorage when backend room policies API is unavailable.
       }
     })();
+    void (async () => {
+      try {
+        const { data } = await supabase.auth.getUser();
+        const metadataAvatar = data?.user?.user_metadata?.avatar_url as string | undefined;
+        if (metadataAvatar) {
+          setAvatarUrl(metadataAvatar);
+          localStorage.setItem('inprofo_avatar_url', metadataAvatar);
+        }
+      } catch {
+        // Keep locally stored avatar.
+      }
+    })();
     setLoading(false);
   }, []);
 
   useEffect(() => {
     localStorage.setItem(ROOM_POLICIES_STORAGE_KEY, JSON.stringify(roomPolicies));
   }, [roomPolicies]);
+
+  useEffect(() => {
+    if (avatarUrl) {
+      localStorage.setItem('inprofo_avatar_url', avatarUrl);
+    }
+  }, [avatarUrl]);
 
   const handleRoomPoliciesChange = (policies: RoomPolicy[]) => {
     setRoomPolicies(policies);
@@ -81,6 +109,15 @@ const App: React.FC = () => {
     const loggedIn = await login(email, password, role);
     setUser(loggedIn);
     localStorage.setItem('inprofo_user', JSON.stringify(loggedIn));
+    try {
+      const { data } = await supabase.auth.getUser();
+      const metadataAvatar = data?.user?.user_metadata?.avatar_url as string | undefined;
+      if (metadataAvatar) {
+        setAvatarUrl(metadataAvatar);
+      }
+    } catch {
+      // Ignore avatar profile fetch failure.
+    }
     await refreshReservations();
   };
 
@@ -104,6 +141,26 @@ const App: React.FC = () => {
     }
   };
 
+  const handleAvatarSelect = async (nextAvatarUrl: string) => {
+    setAvatarSaving(true);
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: {
+          avatar_url: nextAvatarUrl
+        }
+      });
+      if (error) {
+        throw error;
+      }
+      setAvatarUrl(nextAvatarUrl);
+      setAvatarPickerOpen(false);
+    } catch {
+      // Keep previous avatar if save fails.
+    } finally {
+      setAvatarSaving(false);
+    }
+  };
+
   const homePath = useMemo(() => (user ? roleToPath(user.role) : '/login'), [user]);
 
   if (loading) {
@@ -121,6 +178,20 @@ const App: React.FC = () => {
               <Link to="/ceo" className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-[10px] font-black rounded-lg uppercase tracking-tighter">CEO</Link>
               <Link to="/guide" className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white text-[10px] font-black rounded-lg uppercase tracking-tighter">Guide</Link>
               <Link to="/admin" className="px-3 py-2 bg-[#ec1380] hover:brightness-110 text-white text-[10px] font-black rounded-lg uppercase tracking-tighter">Head Admin</Link>
+            </div>
+          </div>
+        )}
+        {user && (
+          <div className="fixed bottom-6 left-6 z-[9999] flex items-center gap-3 bg-white/95 p-3 rounded-2xl border border-slate-200 shadow-xl">
+            <img src={avatarUrl} alt="User avatar" className="h-12 w-12 rounded-xl object-cover border border-slate-200" />
+            <div>
+              <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Profile Avatar</p>
+              <button
+                onClick={() => setAvatarPickerOpen(true)}
+                className="text-[11px] font-black uppercase text-[#7C3AED] hover:underline"
+              >
+                Change Avatar
+              </button>
             </div>
           </div>
         )}
@@ -154,6 +225,13 @@ const App: React.FC = () => {
             </>
           )}
         </Routes>
+        <AvatarPickerModal
+          isOpen={avatarPickerOpen}
+          currentAvatar={avatarUrl}
+          loading={avatarSaving}
+          onClose={() => setAvatarPickerOpen(false)}
+          onSelect={handleAvatarSelect}
+        />
       </div>
     </Router>
   );
