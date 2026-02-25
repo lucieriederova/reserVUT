@@ -1,13 +1,11 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import CalendarGrid from './CalendarGrid';
 import type { UserStatusData } from './CalendarGrid';
 import ReservationModal from './ReservationModal';
-import ReservationsList from './ReservationsList';
 import type { AppUser, ReservationRecord } from '../lib/api';
 import { createReservation, rolePriority } from '../lib/api';
 import { getRoomsForRole, type RoomPolicy } from '../lib/roomAccess';
 
-// 1. Definice Interface pro Props (toto vyřeší tu chybu)
 interface GuideViewProps {
   user: AppUser;
   onLogout: () => void;
@@ -16,14 +14,42 @@ interface GuideViewProps {
   onReservationCreated: () => Promise<void>;
 }
 
-// 2. Použití Interface v definici komponenty
 const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roomPolicies, onReservationCreated }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const guideRooms = useMemo(() => getRoomsForRole(roomPolicies, 'GUIDE'), [roomPolicies]);
-  const visibleReservations = useMemo(
+  const [selectedRoomId, setSelectedRoomId] = useState('');
+
+  const roomReservations = useMemo(
     () => reservations.filter((reservation) => guideRooms.includes(reservation.roomName)),
     [reservations, guideRooms]
   );
+
+  const upcomingReservations = useMemo(() => {
+    const now = Date.now();
+    return roomReservations
+      .filter((reservation) => new Date(reservation.startTime).getTime() >= now)
+      .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+      .slice(0, 4);
+  }, [roomReservations]);
+
+  const canceledReservations = useMemo(() => {
+    const now = Date.now();
+    return roomReservations
+      .filter((reservation) => new Date(reservation.endTime).getTime() < now)
+      .sort((a, b) => new Date(b.endTime).getTime() - new Date(a.endTime).getTime())
+      .slice(0, 4);
+  }, [roomReservations]);
+
+  useEffect(() => {
+    if (!guideRooms.length) {
+      setSelectedRoomId('');
+      return;
+    }
+    if (!selectedRoomId || !guideRooms.includes(selectedRoomId)) {
+      setSelectedRoomId(guideRooms[0]);
+    }
+  }, [guideRooms, selectedRoomId]);
+
   const guideStatus: UserStatusData = {
     role: 'Guide',
     priority: 3,
@@ -31,78 +57,120 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
   };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] p-8 font-sans text-[#111827]">
-      <div className="flex justify-between items-start mb-8">
-        <div>
-          <h1 className="text-3xl font-black italic uppercase tracking-tighter">
-            Global Schedule — Guide View
-          </h1>
-          <p className="text-gray-400 text-sm mt-1 italic font-medium">
-            All rooms are available for Guide-level session scheduling.
-          </p>
-          <div className="flex items-center gap-3 mt-3">
-            <span className="text-[10px] font-black bg-blue-600 text-white px-2 py-0.5 rounded uppercase tracking-widest italic shadow-sm shadow-blue-100">
-              Guide Mode
-            </span>
-            <span className="text-[10px] font-bold text-gray-400">{user.email}</span>
-            <button 
-              onClick={onLogout} 
-              className="text-[10px] font-black text-gray-300 uppercase hover:text-red-500 underline decoration-dotted transition-colors"
-            >
-              Logout
-            </button>
+    <div className="min-h-screen bg-black text-black">
+      <div className="mx-auto max-w-[1600px] px-3 pb-6 pt-2">
+        <header className="rounded-none bg-[#efeff2] px-5 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex min-w-0 items-center gap-6">
+              <div className="flex items-center overflow-hidden border border-black/10">
+                <div className="bg-[#f3113b] px-4 py-1 text-5xl font-black leading-none text-white">T</div>
+                <div className="bg-[#8e48c8] px-4 py-1 text-5xl font-black leading-none text-white">FP</div>
+              </div>
+              <div className="flex items-center gap-4 text-sm uppercase tracking-wide sm:text-lg">
+                <span className="font-semibold text-[#0083ad]">Reservations</span>
+                <span className="text-2xl font-black">{'>'}</span>
+                <span className="font-medium text-black">Global Schedule</span>
+              </div>
+            </div>
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="min-w-0 text-right leading-tight">
+                <p className="truncate text-2xl font-medium text-black sm:text-4xl">{user.email.split('@')[0]}</p>
+                <p className="truncate text-base text-[#777] sm:text-[2rem]">{user.email}</p>
+              </div>
+              <div className="h-14 w-14 rounded-full border-4 border-[#b6b6b6] bg-white sm:h-16 sm:w-16" />
+            </div>
           </div>
-        </div>
-        
-        {/* Guide Quota Card */}
-        <div className="bg-white border border-gray-100 rounded-[32px] p-6 shadow-sm w-72">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-[9px] font-black uppercase text-gray-400 tracking-widest">Guide Quota</span>
-            <span className="text-blue-500 text-lg">🛡️</span>
-          </div>
-          <div className="flex items-baseline gap-2 mb-2">
-            <span className="text-3xl font-black tracking-tighter text-gray-900 uppercase">Unlimited</span>
-            <span className="text-[8px] font-bold uppercase text-gray-400 leading-tight text-wrap w-20">
-              Sessions / Week
-            </span>
-          </div>
-          <div className="h-1.5 w-full bg-gray-100 rounded-full mt-2 overflow-hidden">
-            <div className="h-full bg-blue-500 w-full rounded-full shadow-[0_0_10px_rgba(59,130,246,0.3)]" />
-          </div>
-          <p className="text-[8px] font-black mt-3 text-blue-500 uppercase tracking-tighter italic flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" /> Priority Booking Enabled
-          </p>
-        </div>
-      </div>
+        </header>
 
-      <div className="bg-white rounded-[40px] border border-gray-100 shadow-sm overflow-hidden">
-        {/* Lead Time Alert Banner */}
-        <div className="bg-[#FFF7ED] border-b border-orange-100 p-3 text-center text-[10px] font-black text-orange-600 uppercase italic tracking-tight">
-          🕒 Lead Time Alert: Sessions require a 3-day minimum planning window. Pre-emptive override active.
+        <div className="mt-2 grid grid-cols-1 gap-6 xl:grid-cols-[1fr_290px]">
+          <div>
+            <h1 className="select-none text-[88px] font-black leading-[0.85] tracking-tight text-[#8e42be] sm:text-[140px] lg:text-[200px]">
+              GUIDE
+            </h1>
+            <div className="-mt-1 grid grid-cols-1 items-start gap-5 lg:grid-cols-[1fr_430px]">
+              <div className="max-w-[520px] rounded-full bg-[#efeff2] px-5 py-3">
+                <label className="text-xs font-bold uppercase tracking-[0.14em] text-black/45">Select Room</label>
+                <select
+                  value={selectedRoomId}
+                  onChange={(e) => setSelectedRoomId(e.target.value)}
+                  className="mt-1 w-full bg-transparent text-xl font-semibold uppercase outline-none sm:text-3xl"
+                >
+                  {guideRooms.map((room) => (
+                    <option key={room} value={room}>
+                      {room}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="rounded-[2.4rem] bg-[#efeff2] p-5">
+                <h2 className="text-4xl font-black uppercase leading-none sm:text-5xl">Rules</h2>
+                <ul className="mt-3 space-y-1 text-base font-semibold sm:text-2xl">
+                  <li>Guide role can reserve only allowed rooms.</li>
+                  <li>Reservation max length is 3 hours.</li>
+                  <li>Higher priority booking can pre-empt lower.</li>
+                </ul>
+              </div>
+            </div>
+
+            <section className="mt-5 overflow-hidden rounded-[1.9rem] bg-[#efeff2]">
+              <div className="flex flex-wrap items-center justify-between gap-4 border-b border-black/10 px-5 py-3">
+                <h2 className="text-4xl font-black uppercase leading-none sm:text-5xl">Calendar</h2>
+                <div className="flex items-center gap-4">
+                  <span className="text-xl font-medium sm:text-4xl">{'< 23.2.-1.3. >'}</span>
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    disabled={!guideRooms.length}
+                    className="rounded-full bg-[#7f3fc1] px-6 py-2 text-lg font-black uppercase text-white transition hover:brightness-105 disabled:opacity-50 sm:px-8 sm:py-3 sm:text-3xl"
+                  >
+                    + New Booking
+                  </button>
+                </div>
+              </div>
+              <div className="min-h-[560px] bg-[#b8b8ba] p-3">
+                {guideRooms.length ? (
+                  <CalendarGrid rooms={guideRooms} userStatus={guideStatus} selectedRoomId={selectedRoomId || guideRooms[0]} />
+                ) : (
+                  <p className="px-4 py-8 text-lg font-bold text-gray-700">No rooms are currently assigned to Guide role.</p>
+                )}
+              </div>
+            </section>
+          </div>
+
+          <aside className="flex flex-col gap-5">
+            <div className="rounded-[2.6rem] bg-[#efeff2] p-0 overflow-hidden">
+              <h3 className="px-4 py-3 text-center text-3xl font-medium uppercase sm:text-5xl">Upcoming</h3>
+              <div className="mt-4 space-y-2">
+                {upcomingReservations.map((reservation) => (
+                  <div key={reservation.id} className="flex items-center gap-3 bg-[#e2d6e8] px-3 py-2">
+                    <span className="h-4 w-4 rounded-full bg-[#67cf3f]" />
+                    <span className="text-sm font-medium sm:text-lg">
+                      {new Date(reservation.startTime).toLocaleDateString('cs-CZ')} - {reservation.roomName}
+                    </span>
+                  </div>
+                ))}
+                {!upcomingReservations.length && <p className="text-center text-sm text-black/50 sm:text-base">No upcoming bookings</p>}
+              </div>
+              <h3 className="mt-8 bg-[#dddddf] px-4 py-3 text-center text-3xl font-medium uppercase sm:text-5xl">Canceled</h3>
+              <div className="mt-4 space-y-2">
+                {canceledReservations.map((reservation) => (
+                  <div key={reservation.id} className="flex items-center gap-3 bg-[#e2d6e8] px-3 py-2">
+                    <span className="h-4 w-4 rounded-full bg-[#f11422]" />
+                    <span className="text-sm font-medium sm:text-lg">
+                      {new Date(reservation.endTime).toLocaleDateString('cs-CZ')} - {reservation.roomName}
+                    </span>
+                  </div>
+                ))}
+                {!canceledReservations.length && <p className="text-center text-sm text-black/50 sm:text-base">No canceled bookings</p>}
+              </div>
+            </div>
+            <button
+              onClick={onLogout}
+              className="rounded-full bg-[#efeff2] py-4 text-2xl font-medium uppercase sm:py-5 sm:text-4xl"
+            >
+              Log Out
+            </button>
+          </aside>
         </div>
-        
-        <div className="p-5 border-b border-gray-50 flex justify-between items-center px-10">
-          <span className="text-xs font-black text-gray-800 uppercase tracking-widest italic">
-            23 Oct — 29 Oct 2023
-          </span>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            disabled={!guideRooms.length}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase shadow-lg shadow-blue-100 transition-all active:scale-95"
-          >
-            + New Session
-          </button>
-        </div>
-        
-        {guideRooms.length ? (
-          <CalendarGrid rooms={guideRooms} userStatus={guideStatus} selectedRoomId={guideRooms[0]} />
-        ) : (
-          <p className="px-10 py-8 text-sm font-bold text-gray-500">No rooms are currently assigned to Guide role.</p>
-        )}
-      </div>
-      <div className="mt-8">
-        <h2 className="text-sm font-black uppercase tracking-widest text-gray-500 mb-3">Live Reservations</h2>
-        <ReservationsList reservations={visibleReservations} />
       </div>
 
       <ReservationModal
@@ -127,5 +195,4 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
   );
 };
 
-// 3. Export default pro App.tsx
 export default GuideView;
