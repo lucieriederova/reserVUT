@@ -32,6 +32,7 @@ const App: React.FC = () => {
   const [reservations, setReservations] = useState<ReservationRecord[]>([]);
   const [roomPolicies, setRoomPolicies] = useState<RoomPolicy[]>(DEFAULT_ROOM_POLICIES);
   const [avatarUrl, setAvatarUrl] = useState<string>(AVATAR_LIBRARY[0]?.src || '');
+  const [profileName, setProfileName] = useState<string>('User');
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -77,9 +78,16 @@ const App: React.FC = () => {
       try {
         const { data } = await supabase.auth.getUser();
         const metadataAvatar = data?.user?.user_metadata?.avatar_url as string | undefined;
+        const fullName = data?.user?.user_metadata?.full_name as string | undefined;
+        const firstName = data?.user?.user_metadata?.first_name as string | undefined;
+        const lastName = data?.user?.user_metadata?.last_name as string | undefined;
+        const resolvedName = fullName || [firstName, lastName].filter(Boolean).join(' ').trim();
         if (metadataAvatar) {
           setAvatarUrl(metadataAvatar);
           localStorage.setItem('inprofo_avatar_url', metadataAvatar);
+        }
+        if (resolvedName) {
+          setProfileName(resolvedName);
         }
       } catch {
         // Keep locally stored avatar.
@@ -112,11 +120,17 @@ const App: React.FC = () => {
     try {
       const { data } = await supabase.auth.getUser();
       const metadataAvatar = data?.user?.user_metadata?.avatar_url as string | undefined;
+      const fullName = data?.user?.user_metadata?.full_name as string | undefined;
+      const firstName = data?.user?.user_metadata?.first_name as string | undefined;
+      const lastName = data?.user?.user_metadata?.last_name as string | undefined;
+      const resolvedName = fullName || [firstName, lastName].filter(Boolean).join(' ').trim();
       if (metadataAvatar) {
         setAvatarUrl(metadataAvatar);
       }
+      setProfileName(resolvedName || email.split('@')[0] || 'User');
     } catch {
       // Ignore avatar profile fetch failure.
+      setProfileName(email.split('@')[0] || 'User');
     }
     await refreshReservations();
   };
@@ -182,13 +196,15 @@ const App: React.FC = () => {
           </div>
         )}
         {user && (
-          <div className="fixed bottom-6 left-6 z-[9999] flex items-center gap-3 bg-white/95 p-3 rounded-2xl border border-slate-200 shadow-xl">
-            <img src={avatarUrl} alt="User avatar" className="h-12 w-12 rounded-xl object-cover border border-slate-200" />
+          <div className="fixed top-6 right-6 z-[9999] flex items-center gap-4 bg-white/95 p-4 rounded-2xl border border-slate-200 shadow-xl min-w-[320px]">
+            <img src={avatarUrl} alt="User avatar" className="h-20 w-20 rounded-2xl object-cover border border-slate-200" />
             <div>
-              <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Profile Avatar</p>
+              <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Profile</p>
+              <p className="text-lg font-black text-slate-900 leading-tight">{profileName}</p>
+              <p className="text-xs font-bold text-slate-500">{user.email}</p>
               <button
                 onClick={() => setAvatarPickerOpen(true)}
-                className="text-[11px] font-black uppercase text-[#7C3AED] hover:underline"
+                className="mt-1 text-[11px] font-black uppercase text-[#7C3AED] hover:underline"
               >
                 Change Avatar
               </button>
