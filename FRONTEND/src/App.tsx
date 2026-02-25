@@ -37,6 +37,72 @@ const App: React.FC = () => {
   const [avatarSaving, setAvatarSaving] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const extractNameFromProfileRecord = (record: Record<string, unknown> | null | undefined) => {
+    if (!record) return '';
+
+    const fullName = record.full_name;
+    if (typeof fullName === 'string' && fullName.trim()) return fullName.trim();
+
+    const firstName =
+      (typeof record.first_name === 'string' && record.first_name) ||
+      (typeof record.firstName === 'string' && record.firstName) ||
+      (typeof record['first name'] === 'string' && record['first name']) ||
+      '';
+
+    const lastName =
+      (typeof record.last_name === 'string' && record.last_name) ||
+      (typeof record.lastName === 'string' && record.lastName) ||
+      (typeof record['last name'] === 'string' && record['last name']) ||
+      '';
+
+    return [firstName, lastName].filter(Boolean).join(' ').trim();
+  };
+
+  const loadProfileIdentity = async (fallbackEmail?: string) => {
+    try {
+      const { data } = await supabase.auth.getUser();
+      const authUser = data?.user;
+      if (!authUser) return;
+
+      const metadataAvatar = authUser.user_metadata?.avatar_url as string | undefined;
+      const metadataFullName = authUser.user_metadata?.full_name as string | undefined;
+      const metadataFirstName = authUser.user_metadata?.first_name as string | undefined;
+      const metadataLastName = authUser.user_metadata?.last_name as string | undefined;
+      const metadataName = metadataFullName || [metadataFirstName, metadataLastName].filter(Boolean).join(' ').trim();
+
+      let profileName = '';
+      try {
+        const byId = await supabase.from('profiles').select('*').eq('id', authUser.id).maybeSingle();
+        if (!byId.error) {
+          profileName = extractNameFromProfileRecord(byId.data as Record<string, unknown> | null);
+        }
+      } catch {
+        // ignore and continue fallback
+      }
+
+      if (!profileName && authUser.email) {
+        try {
+          const byEmail = await supabase.from('profiles').select('*').eq('email', authUser.email).maybeSingle();
+          if (!byEmail.error) {
+            profileName = extractNameFromProfileRecord(byEmail.data as Record<string, unknown> | null);
+          }
+        } catch {
+          // ignore and continue fallback
+        }
+      }
+
+      if (metadataAvatar) {
+        setAvatarUrl(metadataAvatar);
+        localStorage.setItem('inprofo_avatar_url', metadataAvatar);
+      }
+      setProfileName(profileName || metadataName || fallbackEmail?.split('@')[0] || 'User');
+    } catch {
+      if (fallbackEmail) {
+        setProfileName(fallbackEmail.split('@')[0] || 'User');
+      }
+    }
+  };
+
   const refreshReservations = async () => {
     const data = await fetchReservations();
     setReservations(data);
@@ -74,25 +140,7 @@ const App: React.FC = () => {
         // Keep local defaults/localStorage when backend room policies API is unavailable.
       }
     })();
-    void (async () => {
-      try {
-        const { data } = await supabase.auth.getUser();
-        const metadataAvatar = data?.user?.user_metadata?.avatar_url as string | undefined;
-        const fullName = data?.user?.user_metadata?.full_name as string | undefined;
-        const firstName = data?.user?.user_metadata?.first_name as string | undefined;
-        const lastName = data?.user?.user_metadata?.last_name as string | undefined;
-        const resolvedName = fullName || [firstName, lastName].filter(Boolean).join(' ').trim();
-        if (metadataAvatar) {
-          setAvatarUrl(metadataAvatar);
-          localStorage.setItem('inprofo_avatar_url', metadataAvatar);
-        }
-        if (resolvedName) {
-          setProfileName(resolvedName);
-        }
-      } catch {
-        // Keep locally stored avatar.
-      }
-    })();
+    void loadProfileIdentity();
     setLoading(false);
   }, []);
 
@@ -117,21 +165,7 @@ const App: React.FC = () => {
     const loggedIn = await login(email, password, role);
     setUser(loggedIn);
     localStorage.setItem('inprofo_user', JSON.stringify(loggedIn));
-    try {
-      const { data } = await supabase.auth.getUser();
-      const metadataAvatar = data?.user?.user_metadata?.avatar_url as string | undefined;
-      const fullName = data?.user?.user_metadata?.full_name as string | undefined;
-      const firstName = data?.user?.user_metadata?.first_name as string | undefined;
-      const lastName = data?.user?.user_metadata?.last_name as string | undefined;
-      const resolvedName = fullName || [firstName, lastName].filter(Boolean).join(' ').trim();
-      if (metadataAvatar) {
-        setAvatarUrl(metadataAvatar);
-      }
-      setProfileName(resolvedName || email.split('@')[0] || 'User');
-    } catch {
-      // Ignore avatar profile fetch failure.
-      setProfileName(email.split('@')[0] || 'User');
-    }
+    await loadProfileIdentity(email);
     await refreshReservations();
   };
 
