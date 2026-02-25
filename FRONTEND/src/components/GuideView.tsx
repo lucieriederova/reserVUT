@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import ReservationModal from './ReservationModal';
 import CalendarGrid from './CalendarGrid';
 import type { UserStatusData } from './CalendarGrid';
-import ReservationModal from './ReservationModal';
 import type { AppUser, ReservationRecord } from '../lib/api';
 import { createReservation, rolePriority } from '../lib/api';
 import { getRoomsForRole, type RoomPolicy } from '../lib/roomAccess';
@@ -16,8 +16,19 @@ interface GuideViewProps {
 
 const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roomPolicies, onReservationCreated }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const guideRooms = useMemo(() => getRoomsForRole(roomPolicies, 'GUIDE'), [roomPolicies]);
   const [selectedRoomId, setSelectedRoomId] = useState('');
+
+  const guideRooms = useMemo(() => getRoomsForRole(roomPolicies, 'GUIDE'), [roomPolicies]);
+
+  useEffect(() => {
+    if (!guideRooms.length) {
+      setSelectedRoomId('');
+      return;
+    }
+    if (!selectedRoomId || !guideRooms.includes(selectedRoomId)) {
+      setSelectedRoomId(guideRooms[0]);
+    }
+  }, [guideRooms, selectedRoomId]);
 
   const roomReservations = useMemo(
     () => reservations.filter((reservation) => guideRooms.includes(reservation.roomName)),
@@ -40,16 +51,6 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
       .slice(0, 4);
   }, [roomReservations]);
 
-  useEffect(() => {
-    if (!guideRooms.length) {
-      setSelectedRoomId('');
-      return;
-    }
-    if (!selectedRoomId || !guideRooms.includes(selectedRoomId)) {
-      setSelectedRoomId(guideRooms[0]);
-    }
-  }, [guideRooms, selectedRoomId]);
-
   const guideStatus: UserStatusData = {
     role: 'Guide',
     priority: 3,
@@ -59,7 +60,7 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
   return (
     <div className="min-h-screen bg-black text-black">
       <div className="mx-auto w-full max-w-[1440px] px-3 pb-6 pt-2 sm:px-4 lg:px-6">
-        <header className="rounded-none bg-[#efeff2] px-5 py-2">
+        <header className="bg-[#efeff2] px-5 py-2">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-6">
               <div className="flex items-center overflow-hidden border border-black/10">
@@ -81,13 +82,15 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
             <h1 className="select-none text-[clamp(4.8rem,13vw,11rem)] font-black leading-[0.85] tracking-tight text-[#8e42be]">
               GUIDE
             </h1>
+
             <div className="-mt-1 grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_420px]">
               <div className="max-w-[520px] rounded-full bg-[#efeff2] px-5 py-3">
                 <label className="text-xs font-bold uppercase tracking-[0.14em] text-black/45">Select Room</label>
                 <select
                   value={selectedRoomId}
                   onChange={(e) => setSelectedRoomId(e.target.value)}
-                  className="mt-1 w-full bg-transparent text-xl font-semibold uppercase outline-none sm:text-3xl"
+                  disabled={!guideRooms.length}
+                  className="mt-1 w-full bg-transparent text-xl font-semibold uppercase outline-none sm:text-3xl disabled:opacity-50"
                 >
                   {guideRooms.map((room) => (
                     <option key={room} value={room}>
@@ -96,6 +99,7 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
                   ))}
                 </select>
               </div>
+
               <div className="rounded-[2.4rem] bg-[#efeff2] p-5">
                 <h2 className="text-4xl font-black uppercase leading-none">Rules</h2>
                 <ul className="mt-3 space-y-1 text-xl font-semibold">
@@ -122,7 +126,11 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
               </div>
               <div className="min-h-[52vh] bg-[#b8b8ba] p-3">
                 {guideRooms.length ? (
-                  <CalendarGrid rooms={guideRooms} userStatus={guideStatus} selectedRoomId={selectedRoomId || guideRooms[0]} />
+                  <CalendarGrid
+                    rooms={guideRooms}
+                    userStatus={guideStatus}
+                    selectedRoomId={selectedRoomId || guideRooms[0]}
+                  />
                 ) : (
                   <p className="px-4 py-8 text-lg font-bold text-gray-700">No rooms are currently assigned to Guide role.</p>
                 )}
@@ -131,9 +139,9 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
           </div>
 
           <aside className="flex flex-col gap-5 xl:pt-24">
-            <div className="rounded-[2.6rem] bg-[#efeff2] p-0 overflow-hidden">
+            <div className="overflow-hidden rounded-[2.6rem] bg-[#efeff2] p-0">
               <h3 className="px-4 py-3 text-center text-[3rem] font-medium uppercase leading-none">Upcoming</h3>
-              <div className="mt-4 space-y-2">
+              <div className="mt-4 space-y-2 px-2 pb-2">
                 {upcomingReservations.map((reservation) => (
                   <div key={reservation.id} className="flex items-center gap-3 bg-[#e2d6e8] px-3 py-2">
                     <span className="h-4 w-4 rounded-full bg-[#67cf3f]" />
@@ -144,8 +152,9 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
                 ))}
                 {!upcomingReservations.length && <p className="text-center text-sm text-black/50 sm:text-base">No upcoming bookings</p>}
               </div>
+
               <h3 className="mt-8 bg-[#dddddf] px-4 py-3 text-center text-[3rem] font-medium uppercase leading-none">Canceled</h3>
-              <div className="mt-4 space-y-2">
+              <div className="mt-4 space-y-2 px-2 pb-2">
                 {canceledReservations.map((reservation) => (
                   <div key={reservation.id} className="flex items-center gap-3 bg-[#e2d6e8] px-3 py-2">
                     <span className="h-4 w-4 rounded-full bg-[#f11422]" />
@@ -157,6 +166,7 @@ const GuideView: React.FC<GuideViewProps> = ({ user, onLogout, reservations, roo
                 {!canceledReservations.length && <p className="text-center text-sm text-black/50 sm:text-base">No canceled bookings</p>}
               </div>
             </div>
+
             <button
               onClick={onLogout}
               className="rounded-full bg-[#efeff2] py-4 text-2xl font-medium uppercase sm:py-5 sm:text-4xl"
