@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { KeyboardEvent } from 'react';
 import type { ReservationRecord } from '../lib/api';
 
 // Exporty jsou klíčové pro ostatní soubory
@@ -16,6 +16,7 @@ export interface GridProps {
   rooms: string[];
   weekOffset?: number;
   reservations?: ReservationRecord[];
+  onReservationClick?: (reservation: ReservationRecord) => void;
 }
 
 const getMonday = (date: Date) => {
@@ -106,10 +107,21 @@ const CalendarGrid: React.FC<GridProps> = ({ selectedRoomId, userStatus, rooms, 
               const top = ((clampedStart - START_HOUR * 60) / DAY_MINUTES) * DAY_PIXEL_HEIGHT;
               const height = Math.max(26, ((clampedEnd - clampedStart) / DAY_MINUTES) * DAY_PIXEL_HEIGHT);
 
+              const handleKey = (event: KeyboardEvent<HTMLDivElement>) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  onReservationClick?.(reservation);
+                }
+              };
+
               return (
                 <div
                   key={reservation.id}
-                  className="absolute left-1.5 right-1.5 rounded-md border border-[#7f3fc1]/30 bg-[#7f3fc1]/15 px-1.5 py-1 text-[9px] font-semibold text-[#4c267a] shadow-sm"
+                  role={onReservationClick ? 'button' : undefined}
+                  tabIndex={onReservationClick ? 0 : undefined}
+                  onClick={() => onReservationClick?.(reservation)}
+                  onKeyDown={handleKey}
+                  className="absolute left-1.5 right-1.5 rounded-md border border-[#7f3fc1]/30 bg-[#7f3fc1]/15 px-1.5 py-1 text-[9px] font-semibold text-[#4c267a] shadow-sm transition hover:border-[#7f3fc1]/70 hover:shadow-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7f3fc1]"
                   style={{ top: `${top}px`, height: `${height}px` }}
                   title={`${reservation.type} (${new Date(reservation.startTime).toLocaleTimeString('cs-CZ', {
                     hour: '2-digit',
